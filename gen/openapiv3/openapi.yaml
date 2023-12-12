@@ -1,0 +1,308 @@
+# Generated with protoc-gen-openapi
+# https://github.com/google/gnostic/tree/master/cmd/protoc-gen-openapi
+
+openapi: 3.0.3
+info:
+    title: ""
+    version: 0.0.1
+paths:
+    /public/submit_and_get:
+        post:
+            tags:
+                - SCDBService
+            description: |-
+                The synchronous query interface allows users to submit a query,
+                 wait for it to finish, and get the query result in one RPC.
+                 This interface is suitable for executing fast queries,
+                 such as DDL, DCL, and simple DQL. However,
+                 if the query takes a long time to run, it may result in a timeout.
+                 Therefore, it is recommended to use the synchronous query API to run
+                 complex queries.
+            operationId: SCDBService_SubmitAndGet
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/SCDBQueryRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/SCDBQueryResultResponse'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+    /v1/intra/query:
+        post:
+            tags:
+                - IntraBrokerService
+            description: |-
+                Run Query synchronously and return query result if the query completes
+                 within a specified timeout
+            operationId: IntraBrokerService_DoQuery
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/QueryRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/QueryResponse'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+components:
+    schemas:
+        GoogleProtobufAny:
+            type: object
+            properties:
+                '@type':
+                    type: string
+                    description: The type of the serialized message.
+            additionalProperties: true
+            description: Contains an arbitrary serialized message along with a @type that describes the type of the serialized message.
+        QueryRequest:
+            type: object
+            properties:
+                header:
+                    $ref: '#/components/schemas/RequestHeader'
+                projectId:
+                    type: string
+                    description: project id
+                query:
+                    type: string
+        QueryResponse:
+            type: object
+            properties:
+                status:
+                    $ref: '#/components/schemas/Status'
+                affectedRows:
+                    type: string
+                    description: valid while DQL is a select-into statement
+                warnings:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/SQLWarning'
+                costTimeS:
+                    type: number
+                    format: double
+                outColumns:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Tensor'
+                    description: Output columns
+        RequestHeader:
+            type: object
+            properties:
+                customHeaders:
+                    type: object
+                    additionalProperties:
+                        type: string
+                    description: Custom headers used to record custom information.
+            description: RequestHeader carries the user custom headers.
+        SCDBCredential:
+            type: object
+            properties:
+                user:
+                    $ref: '#/components/schemas/User'
+        SCDBQueryRequest:
+            type: object
+            properties:
+                header:
+                    $ref: '#/components/schemas/RequestHeader'
+                user:
+                    $ref: '#/components/schemas/SCDBCredential'
+                query:
+                    type: string
+                    description: SCQL query to be run.
+                queryResultCallbackUrl:
+                    type: string
+                    description: |-
+                        Optional call back URL to report query result.
+                         If provided, it should implements the
+                         `SCDBQueryResultCallback.ReportQueryResult` method.
+                bizRequestId:
+                    type: string
+                    description: |-
+                        Biz request id(trace_id provided by the biz client), which often be unique
+                         per biz action, e.g. can be value of order_id, transaction_id, etc.
+                dbName:
+                    type: string
+                    description: Current database name
+            description: |-
+                SCDBQueryRequest designed for Client(Biz Service) which allow callback url
+                 and traceid
+        SCDBQueryResultResponse:
+            type: object
+            properties:
+                status:
+                    allOf:
+                        - $ref: '#/components/schemas/Status'
+                    description: Status of response
+                outColumns:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Tensor'
+                    description: Output columns.
+                scdbSessionId:
+                    type: string
+                    description: Scdb session id
+                affectedRows:
+                    type: string
+                    description: The number of rows affected by a select into, update, insert, or delete
+                warnings:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/SQLWarning'
+                    description: Warnings for the query
+            description: SCDB query result representation (table view by columns).
+        SQLWarning:
+            type: object
+            properties:
+                reason:
+                    type: string
+                    description: Description of the warning
+            description: 'TODO: move SQLWarning to a proper place'
+        Status:
+            type: object
+            properties:
+                code:
+                    type: integer
+                    description: The status code, which should be an enum value of [google.rpc.Code][google.rpc.Code].
+                    format: int32
+                message:
+                    type: string
+                    description: A developer-facing error message, which should be in English. Any user-facing error message should be localized and sent in the [google.rpc.Status.details][google.rpc.Status.details] field, or localized by the client.
+                details:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/GoogleProtobufAny'
+                    description: A list of messages that carry the error details.  There is a common set of message types for APIs to use.
+            description: 'The `Status` type defines a logical error model that is suitable for different programming environments, including REST APIs and RPC APIs. It is used by [gRPC](https://github.com/grpc). Each `Status` message contains three pieces of data: error code, error message, and error details. You can find out more about this error model and how to work with it in the [API Design Guide](https://cloud.google.com/apis/design/errors).'
+        Tensor:
+            type: object
+            properties:
+                name:
+                    type: string
+                    description: Tensor name.
+                shape:
+                    allOf:
+                        - $ref: '#/components/schemas/TensorShape'
+                    description: |-
+                        Tensor shape.
+                         In SCQL cases, it's normally [M] (a vector with M elements).
+                elemType:
+                    type: integer
+                    description: Tensor element type.
+                    format: enum
+                option:
+                    type: integer
+                    description: Tensor options.
+                    format: enum
+                annotation:
+                    allOf:
+                        - $ref: '#/components/schemas/TensorAnnotation'
+                    description: |-
+                        Tensor annotation carries physical status information.
+                         It MUST be there if the <option> is "Reference"
+                int32Data:
+                    type: array
+                    items:
+                        type: integer
+                        format: int32
+                    description: For int8, int16, int32 data types
+                int64Data:
+                    type: array
+                    items:
+                        type: string
+                    description: For int64 and timestamp data types
+                floatData:
+                    type: array
+                    items:
+                        type: number
+                        format: float
+                    description: For float32 data type
+                doubleData:
+                    type: array
+                    items:
+                        type: number
+                        format: double
+                    description: For float64 data type
+                boolData:
+                    type: array
+                    items:
+                        type: boolean
+                    description: For bool data type
+                stringData:
+                    type: array
+                    items:
+                        type: string
+                    description: For string and datetime data types
+                refNum:
+                    type: integer
+                    description: Tensor reference nums, used to delete tensor immediately
+                    format: int32
+            description: A tensor data representation.
+        TensorAnnotation:
+            type: object
+            properties:
+                status:
+                    type: integer
+                    format: enum
+        TensorShape:
+            type: object
+            properties:
+                dim:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/TensorShape_Dimension'
+            description: |-
+                Defines a tensor shape. A dimension can be either an integer value
+                 or a symbolic variable. A symbolic variable represents an unknown
+                 dimension.
+        TensorShape_Dimension:
+            type: object
+            properties:
+                dimValue:
+                    type: string
+                dimParam:
+                    type: string
+        User:
+            type: object
+            properties:
+                accountSystemType:
+                    type: integer
+                    format: enum
+                nativeUser:
+                    $ref: '#/components/schemas/User_NativeUser'
+        User_NativeUser:
+            type: object
+            properties:
+                name:
+                    type: string
+                    description: e.g. "zhang_san"
+                password:
+                    type: string
+                    description: e.g. "123456"
+tags:
+    - name: IntraBrokerService
+      description: IntraBrokerService only accepts requests from within the domain.
+    - name: SCDBService
+      description: |-
+        SCDBService provides a collection of APIs,
+         that client-user can connect to the SCQL system, execute queries and fetch
+         results.

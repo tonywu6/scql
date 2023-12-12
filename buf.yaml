@@ -1,0 +1,14 @@
+version: v1
+name: buf.build/secretflow/scql
+
+deps:
+  # - buf.build/secretflow/spu
+  - buf.build/googleapis/googleapis
+
+lint:
+  use:
+    - DEFAULT
+
+breaking:
+  use:
+    - FILE

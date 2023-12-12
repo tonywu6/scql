@@ -20,7 +20,6 @@ import "api/core.proto";
 import "api/status.proto";
 import "google/protobuf/timestamp.proto";
 
-option go_package = "proto-gen/audit";
 
 message AuditHeader {
   google.protobuf.Timestamp time = 1;

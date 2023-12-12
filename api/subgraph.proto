@@ -19,7 +19,6 @@ package scql.pb;
 
 import "api/core.proto";
 
-option go_package = "proto-gen/scql";
 
 // SubGraph is the part of the whole execution graph seen
 // from the perspective of the party.

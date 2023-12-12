@@ -17,12 +17,11 @@ syntax = "proto3";
 
 package scql.pb;
 
-import "api/core.proto";
-import "google/protobuf/empty.proto";
 import "api/common.proto";
+import "api/core.proto";
 import "api/status.proto";
-
-option go_package = "proto-gen/scql";
+import "google/api/annotations.proto";
+import "google/protobuf/empty.proto";
 
 // SCDBService provides a collection of APIs,
 // that client-user can connect to the SCQL system, execute queries and fetch
@@ -44,7 +43,12 @@ service SCDBService {
   // if the query takes a long time to run, it may result in a timeout.
   // Therefore, it is recommended to use the synchronous query API to run
   // complex queries.
-  rpc SubmitAndGet(SCDBQueryRequest) returns (SCDBQueryResultResponse);
+  rpc SubmitAndGet(SCDBQueryRequest) returns (SCDBQueryResultResponse) {
+    option (google.api.http) = {
+      post: "/public/submit_and_get"
+      body: "*"
+    };
+  }
 }
 
 // SCDBQueryResultCallback defines an API that SCQL could use it to notify the
@@ -52,8 +56,7 @@ service SCDBService {
 // successfully or an error has occurred.
 service SCDBQueryResultCallback {
   // ReportQueryResult reports the query result once the query job done.
-  rpc ReportQueryResult(SCDBQueryResultResponse)
-      returns (google.protobuf.Empty);
+  rpc ReportQueryResult(SCDBQueryResultResponse) returns (google.protobuf.Empty);
 }
 
 // SCDBQueryRequest designed for Client(Biz Service) which allow callback url

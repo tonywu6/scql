@@ -18,7 +18,6 @@ import "api/core.proto";
 import "api/status.proto";
 
 package scql.pb;
-option go_package = "proto-gen/scql";
 
 // RequestHeader carries the user custom headers.
 message RequestHeader {

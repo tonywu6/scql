@@ -1,0 +1,402 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "api/scdb_api.proto",
+    "version": "version not set"
+  },
+  "tags": [
+    {
+      "name": "SCDBService"
+    },
+    {
+      "name": "SCDBQueryResultCallback"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/public/submit_and_get": {
+      "post": {
+        "summary": "The synchronous query interface allows users to submit a query,\nwait for it to finish, and get the query result in one RPC.\nThis interface is suitable for executing fast queries,\nsuch as DDL, DCL, and simple DQL. However,\nif the query takes a long time to run, it may result in a timeout.\nTherefore, it is recommended to use the synchronous query API to run\ncomplex queries.",
+        "operationId": "SCDBService_SubmitAndGet",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbSCDBQueryResultResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbSCDBQueryRequest"
+            }
+          }
+        ],
+        "tags": [
+          "SCDBService"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "TensorShapeDimension": {
+      "type": "object",
+      "properties": {
+        "dimValue": {
+          "type": "string",
+          "format": "int64"
+        },
+        "dimParam": {
+          "type": "string",
+          "description": "shape is unknown."
+        }
+      }
+    },
+    "UserAccountSystemType": {
+      "type": "string",
+      "enum": [
+        "UNKNOWN",
+        "NATIVE_USER"
+      ],
+      "default": "UNKNOWN"
+    },
+    "UserNativeUser": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "e.g. \"zhang_san\""
+        },
+        "password": {
+          "type": "string",
+          "title": "e.g. \"123456\""
+        }
+      }
+    },
+    "googlerpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "pbPrimitiveDataType": {
+      "type": "string",
+      "enum": [
+        "PrimitiveDataType_UNDEFINED",
+        "INT8",
+        "INT16",
+        "INT32",
+        "INT64",
+        "FLOAT32",
+        "FLOAT64",
+        "BOOL",
+        "STRING",
+        "DATETIME",
+        "TIMESTAMP"
+      ],
+      "default": "PrimitiveDataType_UNDEFINED",
+      "description": "the 8-bit signed integer type\n - INT16: the 16-bit signed integer type\n - INT32: the 32-bit signed integer type\n - INT64: the 64-bit signed integer type\n - FLOAT32: the 32-bit binary floating point type\n - FLOAT64: the 64-bit binary floating point type\n - BOOL: Other types\n - DATETIME: DATETIME and TIMESTAMP\n\nhttps://dev.mysql.com/doc/refman/8.0/en/datetime.html\n - TIMESTAMP: seconds since '1970-01-01 00:00:00' UTC",
+      "title": "- INT8: Numeric types"
+    },
+    "pbRequestHeader": {
+      "type": "object",
+      "properties": {
+        "customHeaders": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Custom headers used to record custom information."
+        }
+      },
+      "description": "RequestHeader carries the user custom headers."
+    },
+    "pbSCDBCredential": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "$ref": "#/definitions/pbUser"
+        }
+      }
+    },
+    "pbSCDBQueryRequest": {
+      "type": "object",
+      "properties": {
+        "header": {
+          "$ref": "#/definitions/pbRequestHeader"
+        },
+        "user": {
+          "$ref": "#/definitions/pbSCDBCredential"
+        },
+        "query": {
+          "type": "string",
+          "description": "SCQL query to be run."
+        },
+        "queryResultCallbackUrl": {
+          "type": "string",
+          "description": "Optional call back URL to report query result.\nIf provided, it should implements the\n`SCDBQueryResultCallback.ReportQueryResult` method."
+        },
+        "bizRequestId": {
+          "type": "string",
+          "description": "Biz request id(trace_id provided by the biz client), which often be unique\nper biz action, e.g. can be value of order_id, transaction_id, etc."
+        },
+        "dbName": {
+          "type": "string",
+          "title": "Current database name"
+        }
+      },
+      "title": "SCDBQueryRequest designed for Client(Biz Service) which allow callback url\nand traceid"
+    },
+    "pbSCDBQueryResultResponse": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "$ref": "#/definitions/scqlpbStatus",
+          "title": "Status of response"
+        },
+        "outColumns": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbTensor"
+          },
+          "description": "Output columns."
+        },
+        "scdbSessionId": {
+          "type": "string",
+          "title": "Scdb session id"
+        },
+        "affectedRows": {
+          "type": "string",
+          "format": "int64",
+          "title": "The number of rows affected by a select into, update, insert, or delete"
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbSQLWarning"
+          },
+          "title": "Warnings for the query"
+        }
+      },
+      "description": "SCDB query result representation (table view by columns)."
+    },
+    "pbSCDBSubmitResponse": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "$ref": "#/definitions/scqlpbStatus",
+          "title": "Status of response"
+        },
+        "scdbSessionId": {
+          "type": "string",
+          "title": "Scdb session id"
+        }
+      }
+    },
+    "pbSQLWarning": {
+      "type": "object",
+      "properties": {
+        "reason": {
+          "type": "string",
+          "title": "Description of the warning"
+        }
+      },
+      "title": "TODO: move SQLWarning to a proper place"
+    },
+    "pbTensor": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Tensor name."
+        },
+        "shape": {
+          "$ref": "#/definitions/pbTensorShape",
+          "description": "Tensor shape.\nIn SCQL cases, it's normally [M] (a vector with M elements)."
+        },
+        "elemType": {
+          "$ref": "#/definitions/pbPrimitiveDataType",
+          "description": "Tensor element type."
+        },
+        "option": {
+          "$ref": "#/definitions/pbTensorOptions",
+          "description": "Tensor options."
+        },
+        "annotation": {
+          "$ref": "#/definitions/pbTensorAnnotation",
+          "title": "Tensor annotation carries physical status information.\nIt MUST be there if the \u003coption\u003e is \"Reference\""
+        },
+        "int32Data": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": "For int8, int16, int32 data types"
+        },
+        "int64Data": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "int64"
+          },
+          "title": "For int64 and timestamp data types"
+        },
+        "floatData": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "float"
+          },
+          "title": "For float32 data type"
+        },
+        "doubleData": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "title": "For float64 data type"
+        },
+        "boolData": {
+          "type": "array",
+          "items": {
+            "type": "boolean"
+          },
+          "title": "For bool data type"
+        },
+        "stringData": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "For string and datetime data types"
+        },
+        "refNum": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Tensor reference nums, used to delete tensor immediately"
+        }
+      },
+      "description": "A tensor data representation."
+    },
+    "pbTensorAnnotation": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "$ref": "#/definitions/pbTensorStatus"
+        }
+      }
+    },
+    "pbTensorOptions": {
+      "type": "string",
+      "enum": [
+        "VALUE",
+        "REFERENCE",
+        "VARIABLE"
+      ],
+      "default": "VALUE",
+      "description": "Tensor options.\n\n - VALUE: A tensor with data.\n - REFERENCE: A tensor with reference (URI).\n - VARIABLE: A tensor variable (declaration)."
+    },
+    "pbTensorShape": {
+      "type": "object",
+      "properties": {
+        "dim": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/TensorShapeDimension"
+          }
+        }
+      },
+      "description": "Defines a tensor shape. A dimension can be either an integer value\nor a symbolic variable. A symbolic variable represents an unknown\ndimension."
+    },
+    "pbTensorStatus": {
+      "type": "string",
+      "enum": [
+        "TENSORSTATUS_UNKNOWN",
+        "TENSORSTATUS_PRIVATE",
+        "TENSORSTATUS_SECRET",
+        "TENSORSTATUS_CIPHER",
+        "TENSORSTATUS_PUBLIC"
+      ],
+      "default": "TENSORSTATUS_UNKNOWN",
+      "description": " - TENSORSTATUS_UNKNOWN: Unknown.\n - TENSORSTATUS_PRIVATE: Private.\n - TENSORSTATUS_SECRET: Secret, usually in the form of secret sharing.\n - TENSORSTATUS_CIPHER: Ciphertext, usually in the form of homomorphic encryption ciphertext.\n - TENSORSTATUS_PUBLIC: Public."
+    },
+    "pbUser": {
+      "type": "object",
+      "properties": {
+        "accountSystemType": {
+          "$ref": "#/definitions/UserAccountSystemType"
+        },
+        "nativeUser": {
+          "$ref": "#/definitions/UserNativeUser"
+        }
+      }
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string",
+          "description": "A URL/resource name that uniquely identifies the type of the serialized\nprotocol buffer message. This string must contain at least\none \"/\" character. The last segment of the URL's path must represent\nthe fully qualified name of the type (as in\n`path/google.protobuf.Duration`). The name should be in a canonical form\n(e.g., leading \".\" is not accepted).\n\nIn practice, teams usually precompile into the binary all types that they\nexpect it to use in the context of Any. However, for URLs which use the\nscheme `http`, `https`, or no scheme, one can optionally set up a type\nserver that maps type URLs to message definitions as follows:\n\n* If no scheme is provided, `https` is assumed.\n* An HTTP GET on the URL must yield a [google.protobuf.Type][]\n  value in binary format, or produce an error.\n* Applications are allowed to cache lookup results based on the\n  URL, or have them precompiled into a binary to avoid any\n  lookup. Therefore, binary compatibility needs to be preserved\n  on changes to types. (Use versioned type names to manage\n  breaking changes.)\n\nNote: this functionality is not currently available in the official\nprotobuf release, and it is not used for type URLs beginning with\ntype.googleapis.com. As of May 2023, there are no widely used type server\nimplementations and no plans to implement one.\n\nSchemes other than `http`, `https` (or the empty scheme) might be\nused with implementation specific semantics."
+        }
+      },
+      "additionalProperties": {},
+      "description": "`Any` contains an arbitrary serialized protocol buffer message along with a\nURL that describes the type of the serialized message.\n\nProtobuf library provides support to pack/unpack Any values in the form\nof utility functions or additional generated methods of the Any type.\n\nExample 1: Pack and unpack a message in C++.\n\n    Foo foo = ...;\n    Any any;\n    any.PackFrom(foo);\n    ...\n    if (any.UnpackTo(\u0026foo)) {\n      ...\n    }\n\nExample 2: Pack and unpack a message in Java.\n\n    Foo foo = ...;\n    Any any = Any.pack(foo);\n    ...\n    if (any.is(Foo.class)) {\n      foo = any.unpack(Foo.class);\n    }\n    // or ...\n    if (any.isSameTypeAs(Foo.getDefaultInstance())) {\n      foo = any.unpack(Foo.getDefaultInstance());\n    }\n\n Example 3: Pack and unpack a message in Python.\n\n    foo = Foo(...)\n    any = Any()\n    any.Pack(foo)\n    ...\n    if any.Is(Foo.DESCRIPTOR):\n      any.Unpack(foo)\n      ...\n\n Example 4: Pack and unpack a message in Go\n\n     foo := \u0026pb.Foo{...}\n     any, err := anypb.New(foo)\n     if err != nil {\n       ...\n     }\n     ...\n     foo := \u0026pb.Foo{}\n     if err := any.UnmarshalTo(foo); err != nil {\n       ...\n     }\n\nThe pack methods provided by protobuf library will by default use\n'type.googleapis.com/full.type.name' as the type URL and the unpack\nmethods only use the fully qualified type name after the last '/'\nin the type URL, for example \"foo.bar.com/x/y.z\" will yield type\nname \"y.z\".\n\nJSON\n====\nThe JSON representation of an `Any` value uses the regular\nrepresentation of the deserialized, embedded message, with an\nadditional field `@type` which contains the type URL. Example:\n\n    package google.profile;\n    message Person {\n      string first_name = 1;\n      string last_name = 2;\n    }\n\n    {\n      \"@type\": \"type.googleapis.com/google.profile.Person\",\n      \"firstName\": \u003cstring\u003e,\n      \"lastName\": \u003cstring\u003e\n    }\n\nIf the embedded message type is well-known and has a custom JSON\nrepresentation, that representation will be embedded adding a field\n`value` which holds the custom JSON in addition to the `@type`\nfield. Example (for message [google.protobuf.Duration][]):\n\n    {\n      \"@type\": \"type.googleapis.com/google.protobuf.Duration\",\n      \"value\": \"1.212s\"\n    }"
+    },
+    "scqlpbStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32",
+          "description": "The status code, which should be one of google rpc code or custom code."
+        },
+        "message": {
+          "type": "string",
+          "description": "Message for recording the error information."
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          },
+          "description": "A list of messages that carry the additional supplementary error details."
+        }
+      },
+      "description": "The `Status` type defines a logical error model that is suitable for\ndifferent programming environments, including REST APIs and RPC APIs. It is\nused by [gRPC](https://github.com/grpc). Each `Status` message contains\nthree pieces of data: error code, error message, and error details.\n\nYou can find out more about this error model and how to work with it in the\n[API Design Guide](https://cloud.google.com/apis/design/errors)."
+    }
+  }
+}

@@ -17,7 +17,6 @@ syntax = "proto3";
 
 package scql.pb;
 
-option go_package = "proto-gen/scql";
 
 // Defines a tensor shape. A dimension can be either an integer value
 // or a symbolic variable. A symbolic variable represents an unknown

@@ -17,11 +17,10 @@ syntax = "proto3";
 
 package scql.pb;
 
-option go_package = "proto-gen/scql";
-
 import "api/common.proto";
-import "api/status.proto";
 import "api/core.proto";
+import "api/status.proto";
+import "google/api/annotations.proto";
 import "libspu/spu.proto";
 
 // IntraBrokerService only accepts requests from within the domain.
@@ -31,7 +30,12 @@ service IntraBrokerService {
 
   // Run Query synchronously and return query result if the query completes
   // within a specified timeout
-  rpc DoQuery(QueryRequest) returns (QueryResponse);
+  rpc DoQuery(QueryRequest) returns (QueryResponse) {
+    option (google.api.http) = {
+      post: "/v1/intra/query"
+      body: "*"
+    };
+  }
 
   // Run Query asynchronously
   rpc SubmitQuery(QueryRequest) returns (SubmitResponse);
@@ -51,8 +55,7 @@ service IntraBrokerService {
   rpc InviteMember(InviteMemberRequest) returns (InviteMemberResponse);
   // List all unprocessed invitation
   rpc ListInvitations(ListInvitationsRequest) returns (ListInvitationsResponse);
-  rpc ProcessInvitation(ProcessInvitationRequest)
-      returns (ProcessInvitationResponse);
+  rpc ProcessInvitation(ProcessInvitationRequest) returns (ProcessInvitationResponse);
 
   // Table related API
   rpc CreateTable(CreateTableRequest) returns (CreateTableResponse);
@@ -99,14 +102,14 @@ message CreateProjectRequest {
   string name = 2;
   string description = 3;
   ProjectConfig conf = 4;
-};
+}
 
 message CreateProjectResponse {
   Status status = 1;
   // if project id is empty in request, broker will generate one and return it
   // in response.
   string project_id = 2;
-};
+}
 
 // Update Project Configurations
 // Only project creater could update project settings

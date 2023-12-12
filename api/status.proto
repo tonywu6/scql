@@ -20,7 +20,6 @@ syntax = "proto3";
 import "google/protobuf/any.proto";
 
 package scql.pb;
-option go_package = "proto-gen/scql";
 
 // The `Status` type defines a logical error model that is suitable for
 // different programming environments, including REST APIs and RPC APIs. It is

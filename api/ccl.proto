@@ -17,7 +17,6 @@ syntax = "proto3";
 
 package scql.pb;
 
-option go_package = "proto-gen/scql";
 
 // Security config information
 message SecurityConfig {

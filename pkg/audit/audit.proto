@@ -21,7 +21,6 @@ import "libspu/spu.proto";
 import "api/engine.proto";
 import "api/ccl.proto";
 import "pkg/audit/common.proto";
-option go_package = "proto-gen/audit";
 
 message AuditLog {
   AuditHeader header = 1;

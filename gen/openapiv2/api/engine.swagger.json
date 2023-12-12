@@ -1,0 +1,639 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "api/engine.proto",
+    "version": "version not set"
+  },
+  "tags": [
+    {
+      "name": "SCQLEngineService"
+    },
+    {
+      "name": "EngineResultCallback"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {},
+  "definitions": {
+    "RuntimeConfigBeaverType": {
+      "type": "string",
+      "enum": [
+        "TrustedFirstParty",
+        "TrustedThirdParty",
+        "MultiParty"
+      ],
+      "default": "TrustedFirstParty",
+      "description": " - TrustedFirstParty: assume first party (rank0) as trusted party to generate beaver triple.\n - TrustedThirdParty: generate beaver triple through an additional trusted third party.\n - MultiParty: generate beaver triple through multi-party."
+    },
+    "RuntimeConfigExpMode": {
+      "type": "string",
+      "enum": [
+        "EXP_DEFAULT",
+        "EXP_PADE",
+        "EXP_TAYLOR"
+      ],
+      "default": "EXP_DEFAULT",
+      "description": "The exponential approximation method.\n\n - EXP_DEFAULT: Implementation defined.\n - EXP_PADE: The pade approximation.\n - EXP_TAYLOR: Taylor series approximation."
+    },
+    "RuntimeConfigLogMode": {
+      "type": "string",
+      "enum": [
+        "LOG_DEFAULT",
+        "LOG_PADE",
+        "LOG_NEWTON"
+      ],
+      "default": "LOG_DEFAULT",
+      "description": "The logarithm approximation method.\n\n - LOG_DEFAULT: Implementation defined.\n - LOG_PADE: The pade approximation.\n - LOG_NEWTON: The newton approximation."
+    },
+    "RuntimeConfigSigmoidMode": {
+      "type": "string",
+      "enum": [
+        "SIGMOID_DEFAULT",
+        "SIGMOID_MM1",
+        "SIGMOID_SEG3",
+        "SIGMOID_REAL"
+      ],
+      "default": "SIGMOID_DEFAULT",
+      "description": "The sigmoid approximation method.\n\n - SIGMOID_DEFAULT: Implementation defined.\n - SIGMOID_MM1: Minmax approximation one order.\nf(x) = 0.5 + 0.125 * x\n - SIGMOID_SEG3: Piece-wise simulation.\nf(x) = 0.5 + 0.125x if -4 \u003c= x \u003c= 4\n       1            if       x \u003e 4\n       0            if  -4 \u003e x\n - SIGMOID_REAL: The real definition, which depends on exp's accuracy.\nf(x) = 1 / (1 + exp(-x))"
+    },
+    "SessionStartParamsParty": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "title": "party code"
+        },
+        "name": {
+          "type": "string",
+          "title": "party name"
+        },
+        "host": {
+          "type": "string",
+          "title": "party host"
+        },
+        "rank": {
+          "type": "integer",
+          "format": "int32",
+          "title": "party rank"
+        },
+        "publicKey": {
+          "type": "string",
+          "description": "Example:\n# 1. generate private key\n$ openssl genpkey -algorithm ed25519 -out ed25519key.pem\n# 2. generate public key based on above private key\n$ openssl pkey -in ed25519key.pem -pubout\n\n# its output like below:\n\n-----BEGIN PUBLIC KEY-----\nBASE64 ENCODED DATA\n-----END PUBLIC KEY-----\n\nthe field `public_key` should be the string between header \"-----BEGIN\nPUBLIC KEY-----\" and footer \"-----END PUBLIC KEY-----\"",
+          "title": "base64 encoded version of the DER encoded public key"
+        }
+      }
+    },
+    "SubDAGJob": {
+      "type": "object",
+      "properties": {
+        "workerId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "nodeIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "TensorShapeDimension": {
+      "type": "object",
+      "properties": {
+        "dimValue": {
+          "type": "string",
+          "format": "int64"
+        },
+        "dimParam": {
+          "type": "string",
+          "description": "shape is unknown."
+        }
+      }
+    },
+    "googlerpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "pbAttributeValue": {
+      "type": "object",
+      "properties": {
+        "t": {
+          "$ref": "#/definitions/pbTensor"
+        }
+      },
+      "description": "Attribute value, it may be a tensor."
+    },
+    "pbExecNode": {
+      "type": "object",
+      "properties": {
+        "nodeName": {
+          "type": "string",
+          "title": "Node name, should be unique in an execution plan,\nits format may be like \"${name}.${id}\""
+        },
+        "opType": {
+          "type": "string",
+          "description": "Operator type that this node refers to."
+        },
+        "inputs": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/pbTensorList"
+          },
+          "description": "Input arguments."
+        },
+        "outputs": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/pbTensorList"
+          },
+          "description": "Output arguments."
+        },
+        "attributes": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/pbAttributeValue"
+          },
+          "description": "Static attributes may be used in this node.\nIt's used to replace the default value defined\nin the operator definition if needed."
+        }
+      },
+      "title": "An execution node"
+    },
+    "pbPrimitiveDataType": {
+      "type": "string",
+      "enum": [
+        "PrimitiveDataType_UNDEFINED",
+        "INT8",
+        "INT16",
+        "INT32",
+        "INT64",
+        "FLOAT32",
+        "FLOAT64",
+        "BOOL",
+        "STRING",
+        "DATETIME",
+        "TIMESTAMP"
+      ],
+      "default": "PrimitiveDataType_UNDEFINED",
+      "description": "the 8-bit signed integer type\n - INT16: the 16-bit signed integer type\n - INT32: the 32-bit signed integer type\n - INT64: the 64-bit signed integer type\n - FLOAT32: the 32-bit binary floating point type\n - FLOAT64: the 64-bit binary floating point type\n - BOOL: Other types\n - DATETIME: DATETIME and TIMESTAMP\n\nhttps://dev.mysql.com/doc/refman/8.0/en/datetime.html\n - TIMESTAMP: seconds since '1970-01-01 00:00:00' UTC",
+      "title": "- INT8: Numeric types"
+    },
+    "pbRunExecutionPlanResponse": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "$ref": "#/definitions/scqlpbStatus"
+        },
+        "outColumns": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbTensor"
+          },
+          "description": "Output columns used to store result datas."
+        },
+        "sessionId": {
+          "type": "string"
+        },
+        "partyCode": {
+          "type": "string",
+          "description": "Code of party which finished the execution plan."
+        },
+        "numRowsAffected": {
+          "type": "string",
+          "format": "int64",
+          "description": "The number of rows affected by a select into, update, insert, or delete."
+        }
+      }
+    },
+    "pbSchedulingPolicy": {
+      "type": "object",
+      "properties": {
+        "workerNum": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "subdags": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbSubDAG"
+          }
+        }
+      }
+    },
+    "pbSessionStartParams": {
+      "type": "object",
+      "properties": {
+        "partyCode": {
+          "type": "string",
+          "description": "This party code.\nIt may be used to get this party information from \u003cparties\u003e below."
+        },
+        "parties": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/SessionStartParamsParty"
+          },
+          "description": "All parties that would jointly complete an execution plan."
+        },
+        "sessionId": {
+          "type": "string",
+          "title": "The session id"
+        },
+        "spuRuntimeCfg": {
+          "$ref": "#/definitions/spuRuntimeConfig",
+          "description": "The spu runtime configuration."
+        },
+        "timeZone": {
+          "type": "string",
+          "title": "The session time zone, only support time offset, like: '+08:00'"
+        }
+      },
+      "description": "A message carries all session-level (execution plan level) information."
+    },
+    "pbSubDAG": {
+      "type": "object",
+      "properties": {
+        "jobs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/SubDAGJob"
+          }
+        },
+        "needCallBarrierAfterJobs": {
+          "type": "boolean",
+          "title": "a barrier to sync among parties"
+        }
+      }
+    },
+    "pbSubGraph": {
+      "type": "object",
+      "properties": {
+        "nodes": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/pbExecNode"
+          }
+        },
+        "policy": {
+          "$ref": "#/definitions/pbSchedulingPolicy"
+        },
+        "graphChecksum": {
+          "type": "string",
+          "format": "byte",
+          "description": "checksum of the whole execution graph\nIt could be used to verify and ensure that engines execute the same graph."
+        }
+      },
+      "description": "SubGraph is the part of the whole execution graph seen\nfrom the perspective of the party.\nEach party could only see the ExecNode which it participates in."
+    },
+    "pbTensor": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Tensor name."
+        },
+        "shape": {
+          "$ref": "#/definitions/pbTensorShape",
+          "description": "Tensor shape.\nIn SCQL cases, it's normally [M] (a vector with M elements)."
+        },
+        "elemType": {
+          "$ref": "#/definitions/pbPrimitiveDataType",
+          "description": "Tensor element type."
+        },
+        "option": {
+          "$ref": "#/definitions/pbTensorOptions",
+          "description": "Tensor options."
+        },
+        "annotation": {
+          "$ref": "#/definitions/pbTensorAnnotation",
+          "title": "Tensor annotation carries physical status information.\nIt MUST be there if the \u003coption\u003e is \"Reference\""
+        },
+        "int32Data": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": "For int8, int16, int32 data types"
+        },
+        "int64Data": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "int64"
+          },
+          "title": "For int64 and timestamp data types"
+        },
+        "floatData": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "float"
+          },
+          "title": "For float32 data type"
+        },
+        "doubleData": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "title": "For float64 data type"
+        },
+        "boolData": {
+          "type": "array",
+          "items": {
+            "type": "boolean"
+          },
+          "title": "For bool data type"
+        },
+        "stringData": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "For string and datetime data types"
+        },
+        "refNum": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Tensor reference nums, used to delete tensor immediately"
+        }
+      },
+      "description": "A tensor data representation."
+    },
+    "pbTensorAnnotation": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "$ref": "#/definitions/pbTensorStatus"
+        }
+      }
+    },
+    "pbTensorList": {
+      "type": "object",
+      "properties": {
+        "tensors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbTensor"
+          }
+        }
+      }
+    },
+    "pbTensorOptions": {
+      "type": "string",
+      "enum": [
+        "VALUE",
+        "REFERENCE",
+        "VARIABLE"
+      ],
+      "default": "VALUE",
+      "description": "Tensor options.\n\n - VALUE: A tensor with data.\n - REFERENCE: A tensor with reference (URI).\n - VARIABLE: A tensor variable (declaration)."
+    },
+    "pbTensorShape": {
+      "type": "object",
+      "properties": {
+        "dim": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/TensorShapeDimension"
+          }
+        }
+      },
+      "description": "Defines a tensor shape. A dimension can be either an integer value\nor a symbolic variable. A symbolic variable represents an unknown\ndimension."
+    },
+    "pbTensorStatus": {
+      "type": "string",
+      "enum": [
+        "TENSORSTATUS_UNKNOWN",
+        "TENSORSTATUS_PRIVATE",
+        "TENSORSTATUS_SECRET",
+        "TENSORSTATUS_CIPHER",
+        "TENSORSTATUS_PUBLIC"
+      ],
+      "default": "TENSORSTATUS_UNKNOWN",
+      "description": " - TENSORSTATUS_UNKNOWN: Unknown.\n - TENSORSTATUS_PRIVATE: Private.\n - TENSORSTATUS_SECRET: Secret, usually in the form of secret sharing.\n - TENSORSTATUS_CIPHER: Ciphertext, usually in the form of homomorphic encryption ciphertext.\n - TENSORSTATUS_PUBLIC: Public."
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string",
+          "description": "A URL/resource name that uniquely identifies the type of the serialized\nprotocol buffer message. This string must contain at least\none \"/\" character. The last segment of the URL's path must represent\nthe fully qualified name of the type (as in\n`path/google.protobuf.Duration`). The name should be in a canonical form\n(e.g., leading \".\" is not accepted).\n\nIn practice, teams usually precompile into the binary all types that they\nexpect it to use in the context of Any. However, for URLs which use the\nscheme `http`, `https`, or no scheme, one can optionally set up a type\nserver that maps type URLs to message definitions as follows:\n\n* If no scheme is provided, `https` is assumed.\n* An HTTP GET on the URL must yield a [google.protobuf.Type][]\n  value in binary format, or produce an error.\n* Applications are allowed to cache lookup results based on the\n  URL, or have them precompiled into a binary to avoid any\n  lookup. Therefore, binary compatibility needs to be preserved\n  on changes to types. (Use versioned type names to manage\n  breaking changes.)\n\nNote: this functionality is not currently available in the official\nprotobuf release, and it is not used for type URLs beginning with\ntype.googleapis.com. As of May 2023, there are no widely used type server\nimplementations and no plans to implement one.\n\nSchemes other than `http`, `https` (or the empty scheme) might be\nused with implementation specific semantics."
+        }
+      },
+      "additionalProperties": {},
+      "description": "`Any` contains an arbitrary serialized protocol buffer message along with a\nURL that describes the type of the serialized message.\n\nProtobuf library provides support to pack/unpack Any values in the form\nof utility functions or additional generated methods of the Any type.\n\nExample 1: Pack and unpack a message in C++.\n\n    Foo foo = ...;\n    Any any;\n    any.PackFrom(foo);\n    ...\n    if (any.UnpackTo(\u0026foo)) {\n      ...\n    }\n\nExample 2: Pack and unpack a message in Java.\n\n    Foo foo = ...;\n    Any any = Any.pack(foo);\n    ...\n    if (any.is(Foo.class)) {\n      foo = any.unpack(Foo.class);\n    }\n    // or ...\n    if (any.isSameTypeAs(Foo.getDefaultInstance())) {\n      foo = any.unpack(Foo.getDefaultInstance());\n    }\n\n Example 3: Pack and unpack a message in Python.\n\n    foo = Foo(...)\n    any = Any()\n    any.Pack(foo)\n    ...\n    if any.Is(Foo.DESCRIPTOR):\n      any.Unpack(foo)\n      ...\n\n Example 4: Pack and unpack a message in Go\n\n     foo := \u0026pb.Foo{...}\n     any, err := anypb.New(foo)\n     if err != nil {\n       ...\n     }\n     ...\n     foo := \u0026pb.Foo{}\n     if err := any.UnmarshalTo(foo); err != nil {\n       ...\n     }\n\nThe pack methods provided by protobuf library will by default use\n'type.googleapis.com/full.type.name' as the type URL and the unpack\nmethods only use the fully qualified type name after the last '/'\nin the type URL, for example \"foo.bar.com/x/y.z\" will yield type\nname \"y.z\".\n\nJSON\n====\nThe JSON representation of an `Any` value uses the regular\nrepresentation of the deserialized, embedded message, with an\nadditional field `@type` which contains the type URL. Example:\n\n    package google.profile;\n    message Person {\n      string first_name = 1;\n      string last_name = 2;\n    }\n\n    {\n      \"@type\": \"type.googleapis.com/google.profile.Person\",\n      \"firstName\": \u003cstring\u003e,\n      \"lastName\": \u003cstring\u003e\n    }\n\nIf the embedded message type is well-known and has a custom JSON\nrepresentation, that representation will be embedded adding a field\n`value` which holds the custom JSON in addition to the `@type`\nfield. Example (for message [google.protobuf.Duration][]):\n\n    {\n      \"@type\": \"type.googleapis.com/google.protobuf.Duration\",\n      \"value\": \"1.212s\"\n    }"
+    },
+    "scqlpbStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32",
+          "description": "The status code, which should be one of google rpc code or custom code."
+        },
+        "message": {
+          "type": "string",
+          "description": "Message for recording the error information."
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          },
+          "description": "A list of messages that carry the additional supplementary error details."
+        }
+      },
+      "description": "The `Status` type defines a logical error model that is suitable for\ndifferent programming environments, including REST APIs and RPC APIs. It is\nused by [gRPC](https://github.com/grpc). Each `Status` message contains\nthree pieces of data: error code, error message, and error details.\n\nYou can find out more about this error model and how to work with it in the\n[API Design Guide](https://cloud.google.com/apis/design/errors)."
+    },
+    "spuFieldType": {
+      "type": "string",
+      "enum": [
+        "FT_INVALID",
+        "FM32",
+        "FM64",
+        "FM128"
+      ],
+      "default": "FT_INVALID",
+      "description": "A security parameter type.\n\nThe secure evaluation is based on some algebraic structure (ring or field),\n\n - FM32: Ring 2^32\n - FM64: Ring 2^64\n - FM128: Ring 2^128"
+    },
+    "spuProtocolKind": {
+      "type": "string",
+      "enum": [
+        "PROT_INVALID",
+        "REF2K",
+        "SEMI2K",
+        "ABY3",
+        "CHEETAH"
+      ],
+      "default": "PROT_INVALID",
+      "description": "The protocol kind.\n\n - PROT_INVALID: Invalid protocol.\n - REF2K: The reference implementation in `ring^2k`, note: this 'protocol' only\nbehave-like a fixed point secure protocol without any security guarantee.\nHence, it should only be selected for debugging purposes.\n - SEMI2K: A semi-honest multi-party protocol. This protocol requires a trusted third\nparty to generate the offline correlated randoms. Currently, SecretFlow by\ndefault ships this protocol with a trusted first party. Hence, it should\nonly be used for debugging purposes.\n - ABY3: A honest majority 3PC-protocol. SecretFlow provides the semi-honest\nimplementation without Yao.\n - CHEETAH: The famous [Cheetah](https://eprint.iacr.org/2022/207) protocol, a very\nfast 2PC protocol."
+    },
+    "spuRuntimeConfig": {
+      "type": "object",
+      "properties": {
+        "protocol": {
+          "$ref": "#/definitions/spuProtocolKind",
+          "description": "The protocol kind."
+        },
+        "field": {
+          "$ref": "#/definitions/spuFieldType",
+          "description": "The field type."
+        },
+        "fxpFractionBits": {
+          "type": "string",
+          "format": "int64",
+          "description": "Number of fraction bits of fixed-point number.\n0(default) indicates implementation defined."
+        },
+        "enableActionTrace": {
+          "type": "boolean",
+          "description": "When enabled, runtime prints verbose info of the call stack, debug purpose\nonly."
+        },
+        "enableTypeChecker": {
+          "type": "boolean",
+          "description": "When enabled, runtime checks runtime type infos against the\ncompile-time ones, exceptions are raised if mismatches happen. Note:\nRuntime outputs prefer runtime type infos even when flag is on."
+        },
+        "enablePphloTrace": {
+          "type": "boolean",
+          "description": "When enabled, runtime prints executed pphlo list, debug purpose only."
+        },
+        "enableProcessorDump": {
+          "type": "boolean",
+          "description": "When enabled, runtime dumps executed executables in the dump_dir, debug\npurpose only."
+        },
+        "processorDumpDir": {
+          "type": "string"
+        },
+        "enablePphloProfile": {
+          "type": "boolean",
+          "description": "When enabled, runtime records detailed pphlo timing data, debug purpose\nonly.\nWARNING: the `send bytes` information is only accurate when\n`experimental_enable_inter_op_par` and `experimental_enable_intra_op_par`\noptions are disabled."
+        },
+        "enableHalProfile": {
+          "type": "boolean",
+          "description": "When enabled, runtime records detailed hal timing data, debug purpose only.\nWARNING: the `send bytes` information is only accurate when\n`experimental_enable_inter_op_par` and `experimental_enable_intra_op_par`\noptions are disabled."
+        },
+        "publicRandomSeed": {
+          "type": "string",
+          "format": "uint64",
+          "description": "The public random variable generated by the runtime, the concrete prg\nfunction is implementation defined.\nNote: this seed only applies to `public variable` only, it has nothing\nto do with security."
+        },
+        "shareMaxChunkSize": {
+          "type": "string",
+          "format": "uint64",
+          "title": "max chunk size for Value::toProto\ndefault: 128 * 1024 * 1024"
+        },
+        "fxpDivGoldschmidtIters": {
+          "type": "string",
+          "format": "int64",
+          "description": "The iterations use in f_div with Goldschmidt method.\n0(default) indicates implementation defined."
+        },
+        "fxpExpMode": {
+          "$ref": "#/definitions/RuntimeConfigExpMode",
+          "description": "The exponent approximation method."
+        },
+        "fxpExpIters": {
+          "type": "string",
+          "format": "int64",
+          "description": "Number of iterations of `exp` approximation, 0(default) indicates impl\ndefined."
+        },
+        "fxpLogMode": {
+          "$ref": "#/definitions/RuntimeConfigLogMode",
+          "description": "The logarithm approximation method."
+        },
+        "fxpLogIters": {
+          "type": "string",
+          "format": "int64",
+          "description": "Number of iterations of `log` approximation, 0(default) indicates\nimpl-defined."
+        },
+        "fxpLogOrders": {
+          "type": "string",
+          "format": "int64",
+          "description": "Number of orders of `log` approximation, 0(default) indicates impl defined."
+        },
+        "sigmoidMode": {
+          "$ref": "#/definitions/RuntimeConfigSigmoidMode",
+          "description": "The sigmoid function approximation model."
+        },
+        "enableLowerAccuracyRsqrt": {
+          "type": "boolean",
+          "title": "Enable a simpler rsqrt approximation"
+        },
+        "beaverType": {
+          "$ref": "#/definitions/RuntimeConfigBeaverType",
+          "description": "beaver config, works for semi2k and spdz2k for now."
+        },
+        "ttpBeaverConfig": {
+          "$ref": "#/definitions/spuTTPBeaverConfig",
+          "description": "TrustedThirdParty configs."
+        },
+        "truncAllowMsbError": {
+          "type": "boolean",
+          "description": "For protocol like SecureML, the most significant bit may have error with\nlow probability, which lead to huge calculation error."
+        },
+        "experimentalDisableMmulSplit": {
+          "type": "boolean",
+          "title": "Experimental: DO NOT USE"
+        },
+        "experimentalEnableInterOpPar": {
+          "type": "boolean",
+          "description": "inter op parallel, aka, DAG level parallel."
+        },
+        "experimentalEnableIntraOpPar": {
+          "type": "boolean",
+          "description": "intra op parallel, aka, hal/mpc level parallel."
+        },
+        "experimentalDisableVectorization": {
+          "type": "boolean",
+          "description": "disable kernel level vectorization."
+        }
+      },
+      "description": "The SPU runtime configuration.\n\n"
+    },
+    "spuTTPBeaverConfig": {
+      "type": "object",
+      "properties": {
+        "serverHost": {
+          "type": "string",
+          "description": "TrustedThirdParty beaver server's remote ip:port or load-balance uri."
+        },
+        "sessionId": {
+          "type": "string",
+          "description": "if empty, use link id as session id."
+        },
+        "adjustRank": {
+          "type": "integer",
+          "format": "int32",
+          "description": "which rank do adjust rpc call, usually choose the rank closer to the\nserver."
+        }
+      }
+    }
+  }
+}
